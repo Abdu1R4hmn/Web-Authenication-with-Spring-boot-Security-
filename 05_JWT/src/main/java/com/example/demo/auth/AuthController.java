@@ -10,9 +10,11 @@ import com.example.demo.user.User;
 import com.example.demo.user.UserRepository;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -33,20 +35,29 @@ public class AuthController{
     private final PasswordEncoder passwordEncoder;
     @Autowired
     private final AuthenticationManager authenticationManager;
+    @Autowired
+    private final JwtService jwtService;
 
-    public AuthController(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder, AuthenticationManager authenticationManager) {
+    public AuthController(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder, AuthenticationManager authenticationManager, JwtService jwtService) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
+        this.jwtService = jwtService;
     }
 
 
     @PostMapping("/login")
-    public void login(@Valid @RequestBody LoginDto dto){
+    public String login(@Valid @RequestBody LoginDto dto){
         Authentication authentication = authenticationManager.
                 authenticate(new UsernamePasswordAuthenticationToken(dto.getEmail(),dto.getPassword()));
         SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        String token = jwtService.generateToken(userDetails);
+
+        return token;
+
     }
 
     @PostMapping("/register")
